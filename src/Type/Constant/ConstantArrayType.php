@@ -24,6 +24,7 @@ use PHPStan\Type\Generic\TemplateTypeMap;
 use PHPStan\Type\Generic\TemplateTypeVariance;
 use PHPStan\Type\IntegerRangeType;
 use PHPStan\Type\IntersectionType;
+use PHPStan\Type\LazyUnionType;
 use PHPStan\Type\MixedType;
 use PHPStan\Type\NeverType;
 use PHPStan\Type\ObjectType;
@@ -104,8 +105,18 @@ class ConstantArrayType extends ArrayType implements ConstantType
 
 		parent::__construct(
 			$keyType,
-			count($valueTypes) > 0 ? TypeCombinator::union(...$valueTypes) : new NeverType(true),
+			count($valueTypes) > 0 ? new LazyUnionType($valueTypes) : new NeverType(true),
 		);
+	}
+
+	public function getItemType(): Type
+	{
+		$itemType = parent::getItemType();
+		if ($itemType instanceof LazyUnionType) {
+			$itemType = $itemType->resolve();
+		}
+
+		return $itemType;
 	}
 
 	public function getConstantArrays(): array
